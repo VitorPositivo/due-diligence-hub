@@ -1,1 +1,16 @@
 project_id = "synopgfcachzlptyvezb"
+
+[functions.consulta-dados-cadastrais]
+verify_jwt = false
+
+[functions.consulta-socios]
+verify_jwt = false
+
+[functions.consulta-sancoes]
+verify_jwt = false
+
+[functions.consulta-pep]
+verify_jwt = false
+
+[functions.consulta-processos]
+verify_jwt = false
