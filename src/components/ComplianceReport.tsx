@@ -15,6 +15,8 @@ import {
   Globe
 } from 'lucide-react';
 import { RelatorioCompliance } from '@/types/compliance';
+import { jsPDF } from 'jspdf';
+import { useToast } from '@/hooks/use-toast';
 
 interface ComplianceReportProps {
   relatorio: RelatorioCompliance;
@@ -22,6 +24,8 @@ interface ComplianceReportProps {
 }
 
 export const ComplianceReport = ({ relatorio, onBack }: ComplianceReportProps) => {
+  const { toast } = useToast();
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return 'text-success';
     if (score >= 60) return 'text-warning';
@@ -38,6 +42,165 @@ export const ComplianceReport = ({ relatorio, onBack }: ComplianceReportProps) =
     return variants[nivel as keyof typeof variants] || 'secondary';
   };
 
+  const exportarPDF = () => {
+    try {
+      toast({
+        title: "Gerando PDF...",
+        description: "Aguarde enquanto o relatório é gerado.",
+      });
+
+      const doc = new jsPDF();
+      const pageWidth = doc.internal.pageSize.getWidth();
+      const pageHeight = doc.internal.pageSize.getHeight();
+      const margin = 20;
+      let yPos = margin;
+
+      // Função auxiliar para adicionar texto com quebra de linha
+      const addText = (text: string, x: number, fontSize: number = 10, isBold: boolean = false) => {
+        doc.setFontSize(fontSize);
+        doc.setFont('helvetica', isBold ? 'bold' : 'normal');
+        
+        if (yPos > pageHeight - 30) {
+          doc.addPage();
+          yPos = margin;
+        }
+        
+        doc.text(text, x, yPos);
+        yPos += fontSize * 0.5;
+      };
+
+      // Cabeçalho
+      doc.setFillColor(26, 35, 126); // Azul escuro corporativo
+      doc.rect(0, 0, pageWidth, 40, 'F');
+      doc.setTextColor(255, 255, 255);
+      addText('RELATÓRIO DE COMPLIANCE', margin, 18, true);
+      addText('Positivo Tecnologia - Due Diligence', margin, 12);
+      
+      yPos += 15;
+      doc.setTextColor(0, 0, 0);
+
+      // Dados principais
+      addText('DADOS DO CONSULTADO', margin, 14, true);
+      yPos += 2;
+      addText(`Nome/Razão Social: ${relatorio.dadosCadastrais?.nomeRazaoSocial || 'N/A'}`, margin, 10);
+      addText(`Documento: ${relatorio.documentoConsultado}`, margin, 10);
+      addText(`Tipo: ${relatorio.tipoDocumento}`, margin, 10);
+      addText(`Situação: ${relatorio.dadosCadastrais?.situacaoCadastral || 'N/A'}`, margin, 10);
+      addText(`Score de Compliance: ${relatorio.scoreCompliance}`, margin, 10, true);
+      
+      yPos += 10;
+
+      // Riscos identificados
+      if (relatorio.riscosIdentificados.length > 0) {
+        addText('RISCOS IDENTIFICADOS', margin, 14, true);
+        yPos += 2;
+        relatorio.riscosIdentificados.forEach((risco, idx) => {
+          addText(`${idx + 1}. ${risco.categoria} - Nível: ${risco.nivel}`, margin + 5, 10);
+          addText(`   ${risco.descricao}`, margin + 5, 9);
+          if (risco.recomendacao) {
+            addText(`   Recomendação: ${risco.recomendacao}`, margin + 5, 9);
+          }
+          yPos += 2;
+        });
+        yPos += 5;
+      }
+
+      // Quadro Societário
+      if (relatorio.quadroSocietario) {
+        addText('QUADRO SOCIETÁRIO', margin, 14, true);
+        yPos += 2;
+        relatorio.quadroSocietario.socios.forEach((socio, idx) => {
+          addText(`${idx + 1}. ${socio.nome}`, margin + 5, 10);
+          addText(`   Documento: ${socio.documento}`, margin + 5, 9);
+          addText(`   Qualificação: ${socio.qualificacao}`, margin + 5, 9);
+          addText(`   Participação: ${socio.percentualParticipacao}%`, margin + 5, 9);
+          yPos += 2;
+        });
+        yPos += 5;
+      }
+
+      // Exposição Política
+      if (relatorio.exposicaoPolitica) {
+        addText('EXPOSIÇÃO POLÍTICA (PEP)', margin, 14, true);
+        yPos += 2;
+        addText(`É PEP: ${relatorio.exposicaoPolitica.isPEP ? 'SIM' : 'NÃO'}`, margin + 5, 10, true);
+        addText(`Relacionamento com PEP: ${relatorio.exposicaoPolitica.relacionamentoPEP ? 'SIM' : 'NÃO'}`, margin + 5, 10);
+        yPos += 5;
+      }
+
+      // Sanções Nacionais
+      if (relatorio.sancoesApontamentos) {
+        addText('SANÇÕES E APONTAMENTOS NACIONAIS', margin, 14, true);
+        yPos += 2;
+        const sancoesEncontradas = relatorio.sancoesApontamentos.nacionais.filter(s => s.encontrado);
+        if (sancoesEncontradas.length > 0) {
+          sancoesEncontradas.forEach((sancao, idx) => {
+            addText(`${idx + 1}. ${sancao.tipo} - ${sancao.orgao}`, margin + 5, 10);
+            if (sancao.detalhes) {
+              addText(`   ${sancao.detalhes}`, margin + 5, 9);
+            }
+            yPos += 2;
+          });
+        } else {
+          addText('Nenhuma sanção nacional encontrada', margin + 5, 10);
+        }
+        yPos += 5;
+      }
+
+      // Processos Judiciais
+      if (relatorio.processosJudiciais && relatorio.processosJudiciais.quantidadeTotal > 0) {
+        addText('PROCESSOS JUDICIAIS', margin, 14, true);
+        yPos += 2;
+        addText(`Total de processos: ${relatorio.processosJudiciais.quantidadeTotal}`, margin + 5, 10, true);
+        relatorio.processosJudiciais.processos.slice(0, 5).forEach((processo, idx) => {
+          addText(`${idx + 1}. ${processo.numeroProcesso}`, margin + 5, 10);
+          addText(`   Assunto: ${processo.assunto}`, margin + 5, 9);
+          addText(`   Tribunal: ${processo.tribunal}`, margin + 5, 9);
+          addText(`   Status: ${processo.status} | Polo: ${processo.polo}`, margin + 5, 9);
+          yPos += 2;
+        });
+        if (relatorio.processosJudiciais.quantidadeTotal > 5) {
+          addText(`... e mais ${relatorio.processosJudiciais.quantidadeTotal - 5} processos`, margin + 5, 9);
+        }
+        yPos += 5;
+      }
+
+      // Rodapé
+      const totalPages = doc.internal.pages.length - 1;
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(8);
+        doc.setTextColor(100, 100, 100);
+        doc.text(
+          `Gerado em: ${new Date().toLocaleString('pt-BR')} | Página ${i} de ${totalPages}`,
+          margin,
+          pageHeight - 10
+        );
+        doc.text(
+          'Relatório confidencial - Uso interno',
+          pageWidth - margin - 60,
+          pageHeight - 10
+        );
+      }
+
+      // Salvar PDF
+      const nomeArquivo = `compliance_${relatorio.documentoConsultado}_${new Date().toISOString().split('T')[0]}.pdf`;
+      doc.save(nomeArquivo);
+
+      toast({
+        title: "PDF gerado com sucesso!",
+        description: `O arquivo ${nomeArquivo} foi baixado.`,
+      });
+    } catch (error) {
+      console.error('Erro ao gerar PDF:', error);
+      toast({
+        title: "Erro ao gerar PDF",
+        description: "Ocorreu um erro ao gerar o relatório. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="w-full max-w-7xl mx-auto animate-fade-in">
       <div className="mb-6 flex items-center justify-between">
@@ -45,7 +208,7 @@ export const ComplianceReport = ({ relatorio, onBack }: ComplianceReportProps) =
           <ArrowLeft className="w-4 h-4 mr-2" />
           Nova Consulta
         </Button>
-        <Button variant="outline">
+        <Button variant="outline" onClick={exportarPDF}>
           <Download className="w-4 h-4 mr-2" />
           Exportar PDF
         </Button>
