@@ -1,18 +1,25 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { DocumentInput } from '@/components/DocumentInput';
 import { ModuleSelector } from '@/components/ModuleSelector';
 import { ComplianceReport } from '@/components/ComplianceReport';
+import { Button } from '@/components/ui/button';
 import { DocumentValidationResult, ModuloConsulta, RelatorioCompliance } from '@/types/compliance';
 import { getMockRelatorio } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
+import { useWeights } from '@/contexts/WeightsContext';
+import { calculateComplianceScore } from '@/lib/scoreCalculator';
+import { Settings } from 'lucide-react';
 
 type Step = 'input' | 'modules' | 'report';
 
 const Index = () => {
+  const navigate = useNavigate();
   const [step, setStep] = useState<Step>('input');
   const [validation, setValidation] = useState<DocumentValidationResult | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioCompliance | null>(null);
   const { toast } = useToast();
+  const { weights } = useWeights();
 
   const handleValidDocument = (validationResult: DocumentValidationResult) => {
     setValidation(validationResult);
@@ -37,7 +44,12 @@ const Index = () => {
         validation.formatted,
         validation.type!
       );
-      setRelatorio(mockReport);
+      
+      // Calcula score usando os pesos configurados
+      const calculatedScore = calculateComplianceScore(mockReport, weights);
+      const reportWithScore = { ...mockReport, scoreCompliance: calculatedScore };
+      
+      setRelatorio(reportWithScore);
       setStep('report');
       
       toast({
@@ -56,6 +68,18 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-12">
+        {/* Botão Admin - sempre visível */}
+        <div className="flex justify-end mb-4">
+          <Button
+            variant="outline"
+            onClick={() => navigate('/admin')}
+            className="gap-2"
+          >
+            <Settings className="w-4 h-4" />
+            Painel Administrativo
+          </Button>
+        </div>
+
         {step === 'input' && (
           <DocumentInput onValidDocument={handleValidDocument} />
         )}
