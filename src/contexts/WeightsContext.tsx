@@ -1,13 +1,58 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { CategoriaModulo } from '@/types/compliance';
 
+export type TipoPerfil = 'tecnico' | 'empresa';
+
 export interface CategoryWeight {
   categoria: CategoriaModulo;
   peso: number; // 1-10
   descricao: string;
 }
 
-const defaultWeights: CategoryWeight[] = [
+const defaultWeightsTecnico: CategoryWeight[] = [
+  {
+    categoria: 'Dados Cadastrais',
+    peso: 6,
+    descricao: 'Informações básicas e cadastrais'
+  },
+  {
+    categoria: 'Sócios e Acionistas',
+    peso: 3,
+    descricao: 'Não aplicável para técnicos'
+  },
+  {
+    categoria: 'Relacionamento e Participações',
+    peso: 3,
+    descricao: 'Não aplicável para técnicos'
+  },
+  {
+    categoria: 'Exposição Política (PEP)',
+    peso: 10,
+    descricao: 'BLOQUEIO: Filiação partidária para técnico de URNA'
+  },
+  {
+    categoria: 'Sanções e Apontamentos Nacionais',
+    peso: 10,
+    descricao: 'Sanções e restrições nacionais'
+  },
+  {
+    categoria: 'Sanções e Apontamentos Internacionais',
+    peso: 8,
+    descricao: 'Sanções e restrições internacionais'
+  },
+  {
+    categoria: 'Processos Judiciais',
+    peso: 10,
+    descricao: 'CRÍTICO: Cíveis/Criminais=NEGADO, Trabalhistas=RISCO'
+  },
+  {
+    categoria: 'Processos Administrativos',
+    peso: 7,
+    descricao: 'Processos administrativos'
+  }
+];
+
+const defaultWeightsEmpresa: CategoryWeight[] = [
   {
     categoria: 'Dados Cadastrais',
     peso: 5,
@@ -54,19 +99,36 @@ interface WeightsContextType {
   weights: CategoryWeight[];
   updateWeight: (categoria: CategoriaModulo, peso: number) => void;
   resetWeights: () => void;
+  tipoPerfil: TipoPerfil;
+  setTipoPerfil: (tipo: TipoPerfil) => void;
 }
 
 const WeightsContext = createContext<WeightsContextType | undefined>(undefined);
 
 export const WeightsProvider = ({ children }: { children: ReactNode }) => {
+  const [tipoPerfil, setTipoPerfilState] = useState<TipoPerfil>(() => {
+    const stored = localStorage.getItem('compliance-tipo-perfil');
+    return (stored as TipoPerfil) || 'empresa';
+  });
+
   const [weights, setWeights] = useState<CategoryWeight[]>(() => {
-    const stored = localStorage.getItem('compliance-weights');
-    return stored ? JSON.parse(stored) : defaultWeights;
+    const stored = localStorage.getItem(`compliance-weights-${tipoPerfil}`);
+    return stored ? JSON.parse(stored) : (tipoPerfil === 'tecnico' ? defaultWeightsTecnico : defaultWeightsEmpresa);
   });
 
   useEffect(() => {
-    localStorage.setItem('compliance-weights', JSON.stringify(weights));
-  }, [weights]);
+    localStorage.setItem('compliance-tipo-perfil', tipoPerfil);
+  }, [tipoPerfil]);
+
+  useEffect(() => {
+    localStorage.setItem(`compliance-weights-${tipoPerfil}`, JSON.stringify(weights));
+  }, [weights, tipoPerfil]);
+
+  const setTipoPerfil = (tipo: TipoPerfil) => {
+    setTipoPerfilState(tipo);
+    const stored = localStorage.getItem(`compliance-weights-${tipo}`);
+    setWeights(stored ? JSON.parse(stored) : (tipo === 'tecnico' ? defaultWeightsTecnico : defaultWeightsEmpresa));
+  };
 
   const updateWeight = (categoria: CategoriaModulo, peso: number) => {
     setWeights(prev =>
@@ -75,11 +137,11 @@ export const WeightsProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const resetWeights = () => {
-    setWeights(defaultWeights);
+    setWeights(tipoPerfil === 'tecnico' ? defaultWeightsTecnico : defaultWeightsEmpresa);
   };
 
   return (
-    <WeightsContext.Provider value={{ weights, updateWeight, resetWeights }}>
+    <WeightsContext.Provider value={{ weights, updateWeight, resetWeights, tipoPerfil, setTipoPerfil }}>
       {children}
     </WeightsContext.Provider>
   );

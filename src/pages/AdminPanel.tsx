@@ -1,14 +1,14 @@
-import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Slider } from '@/components/ui/slider';
-import { ArrowLeft, Settings, RotateCcw } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { useWeights } from '@/contexts/WeightsContext';
-import { useToast } from '@/hooks/use-toast';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useWeights } from "@/contexts/WeightsContext";
+import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Building2, UserCog } from "lucide-react";
+import { Link } from "react-router-dom";
 
 const AdminPanel = () => {
-  const navigate = useNavigate();
-  const { weights, updateWeight, resetWeights } = useWeights();
+  const { weights, updateWeight, resetWeights, tipoPerfil, setTipoPerfil } = useWeights();
   const { toast } = useToast();
 
   const handleReset = () => {
@@ -19,131 +19,165 @@ const AdminPanel = () => {
     });
   };
 
-  const getWeightColor = (peso: number) => {
-    if (peso >= 8) return 'text-destructive';
-    if (peso >= 6) return 'text-warning';
-    if (peso >= 4) return 'text-accent';
-    return 'text-muted-foreground';
-  };
-
-  const getWeightLabel = (peso: number) => {
-    if (peso >= 9) return 'Crítico';
-    if (peso >= 7) return 'Alto';
-    if (peso >= 5) return 'Médio';
-    if (peso >= 3) return 'Baixo';
-    return 'Mínimo';
-  };
-
   return (
-    <div className="min-h-screen bg-gradient-subtle">
-      <div className="container mx-auto px-4 py-12 max-w-6xl animate-fade-in">
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <Button variant="ghost" onClick={() => navigate('/')}>
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Voltar
-            </Button>
-            <div>
-              <h1 className="text-3xl font-bold flex items-center gap-3">
-                <Settings className="w-8 h-8 text-primary" />
-                Painel Administrativo
-              </h1>
-              <p className="text-muted-foreground mt-1">
-                Configure os pesos das categorias para cálculo do score de compliance
-              </p>
-            </div>
-          </div>
-          <Button variant="outline" onClick={handleReset}>
-            <RotateCcw className="w-4 h-4 mr-2" />
-            Restaurar Padrões
+    <div className="min-h-screen bg-gradient-subtle animate-fade-in">
+      <div className="container mx-auto px-4 py-8">
+        <Link to="/">
+          <Button variant="ghost" className="mb-6">
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Voltar
           </Button>
-        </div>
+        </Link>
 
-        {/* Explicação */}
-        <Card className="mb-6 border-primary/20">
-          <CardHeader>
-            <CardTitle>Como funciona o sistema de pesos?</CardTitle>
-            <CardDescription className="text-base">
-              Cada categoria de análise possui um peso de 1 a 10 que determina sua importância no cálculo do score final de compliance.
-              Quanto maior o peso, maior o impacto da categoria no score final. Ajuste os pesos conforme a política de risco da sua organização.
-            </CardDescription>
-          </CardHeader>
-        </Card>
-
-        {/* Cards de Pesos */}
-        <div className="grid gap-6 md:grid-cols-2">
-          {weights.map((weight) => (
-            <Card key={weight.categoria} className="overflow-hidden transition-all hover:shadow-lg">
-              <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <CardTitle className="text-lg">{weight.categoria}</CardTitle>
-                    <CardDescription className="text-sm mt-1">
-                      {weight.descricao}
-                    </CardDescription>
-                  </div>
-                  <div className="text-right ml-4">
-                    <div className={`text-4xl font-bold ${getWeightColor(weight.peso)}`}>
-                      {weight.peso}
-                    </div>
-                    <div className={`text-xs font-medium ${getWeightColor(weight.peso)}`}>
-                      {getWeightLabel(weight.peso)}
-                    </div>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-3">
-                  <Slider
-                    value={[weight.peso]}
-                    onValueChange={([value]) => updateWeight(weight.categoria, value)}
-                    min={1}
-                    max={10}
-                    step={1}
-                    className="w-full"
-                  />
-                  <div className="flex justify-between text-xs text-muted-foreground">
-                    <span>Mínimo (1)</span>
-                    <span>Crítico (10)</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
-        {/* Resumo */}
-        <Card className="mt-6">
-          <CardHeader>
-            <CardTitle>Resumo da Configuração</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-2">
-              <p className="text-sm text-muted-foreground">
-                As alterações são aplicadas automaticamente e serão utilizadas no próximo cálculo de score.
+        <div className="max-w-6xl mx-auto space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-foreground">Painel Administrativo</h1>
+              <p className="text-muted-foreground mt-2">
+                Configure os pesos das categorias de compliance para cálculo do score final
               </p>
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-destructive"></div>
-                  <span>Crítico (9-10)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-warning"></div>
-                  <span>Alto (7-8)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-accent"></div>
-                  <span>Médio (4-6)</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 rounded-full bg-muted"></div>
-                  <span>Baixo (1-3)</span>
-                </div>
-              </div>
             </div>
-          </CardContent>
-        </Card>
+            <Button
+              variant="outline"
+              onClick={handleReset}
+              className="hover:bg-destructive/10 hover:text-destructive hover:border-destructive"
+            >
+              Restaurar Padrões
+            </Button>
+          </div>
+
+          <Tabs value={tipoPerfil} onValueChange={(v) => setTipoPerfil(v as 'tecnico' | 'empresa')} className="w-full">
+            <TabsList className="grid w-full max-w-md mx-auto grid-cols-2">
+              <TabsTrigger value="tecnico" className="flex items-center gap-2">
+                <UserCog className="w-4 h-4" />
+                Técnicos
+              </TabsTrigger>
+              <TabsTrigger value="empresa" className="flex items-center gap-2">
+                <Building2 className="w-4 h-4" />
+                Empresas
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="tecnico" className="space-y-4 mt-6">
+              <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900">
+                <CardHeader>
+                  <CardTitle className="text-amber-900 dark:text-amber-200">Regras Específicas para Técnicos</CardTitle>
+                  <CardDescription className="text-amber-800 dark:text-amber-300">
+                    <ul className="list-disc list-inside space-y-1 mt-2">
+                      <li>Processos cíveis e criminais: <strong>NEGATIVA automática</strong></li>
+                      <li>Processos trabalhistas: Tratados como <strong>RISCO</strong></li>
+                      <li>Intimações e processos em 1ª ou 2ª instância: <strong>PENDENTE</strong> de avaliação</li>
+                      <li>Filiação partidária: <strong>BLOQUEIO</strong> para técnico de atendimento de URNA</li>
+                    </ul>
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {weights.map((weight) => {
+                  const getWeightLabel = (peso: number) => {
+                    if (peso >= 9) return { label: "Crítico", color: "text-red-600 dark:text-red-400" };
+                    if (peso >= 7) return { label: "Alto", color: "text-orange-600 dark:text-orange-400" };
+                    if (peso >= 5) return { label: "Médio", color: "text-yellow-600 dark:text-yellow-400" };
+                    return { label: "Baixo", color: "text-green-600 dark:text-green-400" };
+                  };
+
+                  const weightInfo = getWeightLabel(weight.peso);
+
+                  return (
+                    <Card key={weight.categoria} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg">{weight.categoria}</CardTitle>
+                            <CardDescription className="mt-1">{weight.descricao}</CardDescription>
+                          </div>
+                          <div className="text-right ml-4">
+                            <div className="text-3xl font-bold text-foreground">{weight.peso}</div>
+                            <div className={`text-sm font-medium ${weightInfo.color}`}>
+                              {weightInfo.label}
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Slider
+                          value={[weight.peso]}
+                          onValueChange={(value) => updateWeight(weight.categoria, value[0])}
+                          min={1}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          <span>1 (Baixo)</span>
+                          <span>10 (Crítico)</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="empresa" className="space-y-4 mt-6">
+              <Card className="bg-blue-50 dark:bg-blue-950/20 border-blue-200 dark:border-blue-900">
+                <CardHeader>
+                  <CardTitle className="text-blue-900 dark:text-blue-200">Regras para Empresas</CardTitle>
+                  <CardDescription className="text-blue-800 dark:text-blue-300">
+                    Análise completa de compliance corporativo com todas as categorias de risco.
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <div className="grid gap-4 md:grid-cols-2">
+                {weights.map((weight) => {
+                  const getWeightLabel = (peso: number) => {
+                    if (peso >= 9) return { label: "Crítico", color: "text-red-600 dark:text-red-400" };
+                    if (peso >= 7) return { label: "Alto", color: "text-orange-600 dark:text-orange-400" };
+                    if (peso >= 5) return { label: "Médio", color: "text-yellow-600 dark:text-yellow-400" };
+                    return { label: "Baixo", color: "text-green-600 dark:text-green-400" };
+                  };
+
+                  const weightInfo = getWeightLabel(weight.peso);
+
+                  return (
+                    <Card key={weight.categoria} className="hover:shadow-md transition-shadow">
+                      <CardHeader>
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <CardTitle className="text-lg">{weight.categoria}</CardTitle>
+                            <CardDescription className="mt-1">{weight.descricao}</CardDescription>
+                          </div>
+                          <div className="text-right ml-4">
+                            <div className="text-3xl font-bold text-foreground">{weight.peso}</div>
+                            <div className={`text-sm font-medium ${weightInfo.color}`}>
+                              {weightInfo.label}
+                            </div>
+                          </div>
+                        </div>
+                      </CardHeader>
+                      <CardContent>
+                        <Slider
+                          value={[weight.peso]}
+                          onValueChange={(value) => updateWeight(weight.categoria, value[0])}
+                          min={1}
+                          max={10}
+                          step={1}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground mt-2">
+                          <span>1 (Baixo)</span>
+                          <span>10 (Crítico)</span>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  );
+                })}
+              </div>
+            </TabsContent>
+          </Tabs>
+        </div>
       </div>
     </div>
   );

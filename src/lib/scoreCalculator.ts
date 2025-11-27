@@ -1,5 +1,5 @@
 import { RelatorioCompliance } from '@/types/compliance';
-import { CategoryWeight } from '@/contexts/WeightsContext';
+import { CategoryWeight, TipoPerfil } from '@/contexts/WeightsContext';
 
 /**
  * Calcula o score de compliance baseado nos pesos das categorias
@@ -7,7 +7,8 @@ import { CategoryWeight } from '@/contexts/WeightsContext';
  */
 export const calculateComplianceScore = (
   relatorio: RelatorioCompliance,
-  weights: CategoryWeight[]
+  weights: CategoryWeight[],
+  tipoPerfil: TipoPerfil = 'empresa'
 ): number => {
   let totalScore = 0;
   let totalWeight = 0;
@@ -65,20 +66,25 @@ export const calculateComplianceScore = (
     const weight = getWeight('Exposição Política (PEP)');
     let score = 100;
     
-    if (relatorio.exposicaoPolitica.isPEP) {
-      score -= 40; // PEP direto é risco alto
-    }
-    
-    if (relatorio.exposicaoPolitica.relacionamentoPEP) {
-      score -= 20; // Relacionamento PEP é risco médio
-    }
-    
-    if (relatorio.exposicaoPolitica.detalhes) {
-      relatorio.exposicaoPolitica.detalhes.forEach(detalhe => {
-        if (detalhe.nivelExposicao === 'Alto') score -= 15;
-        else if (detalhe.nivelExposicao === 'Médio') score -= 10;
-        else score -= 5;
-      });
+    // REGRA ESPECÍFICA PARA TÉCNICOS: Filiação partidária = BLOQUEIO para técnico de URNA
+    if (tipoPerfil === 'tecnico' && relatorio.exposicaoPolitica.isPEP) {
+      score = 0; // Bloqueio total
+    } else {
+      if (relatorio.exposicaoPolitica.isPEP) {
+        score -= 40; // PEP direto é risco alto
+      }
+      
+      if (relatorio.exposicaoPolitica.relacionamentoPEP) {
+        score -= 20; // Relacionamento PEP é risco médio
+      }
+      
+      if (relatorio.exposicaoPolitica.detalhes) {
+        relatorio.exposicaoPolitica.detalhes.forEach(detalhe => {
+          if (detalhe.nivelExposicao === 'Alto') score -= 15;
+          else if (detalhe.nivelExposicao === 'Médio') score -= 10;
+          else score -= 5;
+        });
+      }
     }
     
     totalScore += Math.max(0, score) * weight;
@@ -130,23 +136,48 @@ export const calculateComplianceScore = (
     const weight = getWeight('Processos Judiciais');
     let score = 100;
     
-    // Penaliza por quantidade de processos ativos
-    const processosAtivos = relatorio.processosJudiciais.processos.filter(
-      p => p.status === 'Ativo'
-    ).length;
-    
-    score -= processosAtivos * 5;
-    
-    // Penaliza processos no polo passivo
-    const poloPassivo = relatorio.processosJudiciais.processos.filter(
-      p => p.polo === 'Passivo' && p.status === 'Ativo'
-    ).length;
-    
-    score -= poloPassivo * 5;
-    
-    // Valor alto em causa aumenta penalidade
-    if (relatorio.processosJudiciais.quantidadeTotal > 10) {
-      score -= 10;
+    // REGRAS ESPECÍFICAS PARA TÉCNICOS
+    if (tipoPerfil === 'tecnico') {
+      const processosCiveis = relatorio.processosJudiciais.processos.filter(
+        p => p.classe?.toLowerCase().includes('cível') || p.assunto?.toLowerCase().includes('cível')
+      );
+      const processosCriminais = relatorio.processosJudiciais.processos.filter(
+        p => p.classe?.toLowerCase().includes('criminal') || p.assunto?.toLowerCase().includes('criminal') || p.classe?.toLowerCase().includes('penal')
+      );
+      const processosTrabalhistas = relatorio.processosJudiciais.processos.filter(
+        p => p.classe?.toLowerCase().includes('trabalh') || p.assunto?.toLowerCase().includes('trabalh') || p.tribunal?.toLowerCase().includes('trt')
+      );
+      
+      // Processos cíveis ou criminais = NEGATIVA AUTOMÁTICA
+      if (processosCiveis.length > 0 || processosCriminais.length > 0) {
+        score = 0;
+      } else if (processosTrabalhistas.length > 0) {
+        // Processos trabalhistas = RISCO (penalidade moderada)
+        score -= processosTrabalhistas.length * 15;
+      }
+      
+      // Processos ativos em geral = PENDENTE (penalidade leve para avaliação)
+      const processosAtivos = relatorio.processosJudiciais.processos.filter(
+        p => p.status === 'Ativo'
+      ).length;
+      score -= processosAtivos * 5;
+    } else {
+      // REGRAS PARA EMPRESAS (lógica anterior mantida)
+      const processosAtivos = relatorio.processosJudiciais.processos.filter(
+        p => p.status === 'Ativo'
+      ).length;
+      
+      score -= processosAtivos * 5;
+      
+      const poloPassivo = relatorio.processosJudiciais.processos.filter(
+        p => p.polo === 'Passivo' && p.status === 'Ativo'
+      ).length;
+      
+      score -= poloPassivo * 5;
+      
+      if (relatorio.processosJudiciais.quantidadeTotal > 10) {
+        score -= 10;
+      }
     }
     
     totalScore += Math.max(0, score) * weight;
