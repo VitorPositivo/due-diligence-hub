@@ -19,7 +19,7 @@ const Index = () => {
   const [validation, setValidation] = useState<DocumentValidationResult | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioCompliance | null>(null);
   const { toast } = useToast();
-  const { weights } = useWeights();
+  const { weights, tipoPerfil } = useWeights();
 
   const handleValidDocument = (validationResult: DocumentValidationResult) => {
     setValidation(validationResult);
@@ -45,8 +45,8 @@ const Index = () => {
         validation.type!
       );
       
-      // Calcula score usando os pesos configurados
-      const calculatedScore = calculateComplianceScore(mockReport, weights);
+      // Calcula score usando os pesos configurados e o tipo de perfil
+      const calculatedScore = calculateComplianceScore(mockReport, weights, tipoPerfil);
       const reportWithScore = { ...mockReport, scoreCompliance: calculatedScore };
       
       setRelatorio(reportWithScore);
