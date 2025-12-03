@@ -9,6 +9,14 @@ export interface CategoryWeight {
   descricao: string;
 }
 
+export interface RulePreset {
+  id: string;
+  nome: string;
+  tipoPerfil: TipoPerfil;
+  weights: CategoryWeight[];
+  createdAt: string;
+}
+
 const defaultWeightsTecnico: CategoryWeight[] = [
   {
     categoria: 'Dados Cadastrais',
@@ -101,6 +109,12 @@ interface WeightsContextType {
   resetWeights: () => void;
   tipoPerfil: TipoPerfil;
   setTipoPerfil: (tipo: TipoPerfil) => void;
+  presets: RulePreset[];
+  savePreset: (nome: string) => void;
+  loadPreset: (id: string) => void;
+  deletePreset: (id: string) => void;
+  selectedPreset: RulePreset | null;
+  setSelectedPreset: (preset: RulePreset | null) => void;
 }
 
 const WeightsContext = createContext<WeightsContextType | undefined>(undefined);
@@ -116,6 +130,13 @@ export const WeightsProvider = ({ children }: { children: ReactNode }) => {
     return stored ? JSON.parse(stored) : (tipoPerfil === 'tecnico' ? defaultWeightsTecnico : defaultWeightsEmpresa);
   });
 
+  const [presets, setPresets] = useState<RulePreset[]>(() => {
+    const stored = localStorage.getItem('compliance-presets');
+    return stored ? JSON.parse(stored) : [];
+  });
+
+  const [selectedPreset, setSelectedPreset] = useState<RulePreset | null>(null);
+
   useEffect(() => {
     localStorage.setItem('compliance-tipo-perfil', tipoPerfil);
   }, [tipoPerfil]);
@@ -123,6 +144,10 @@ export const WeightsProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     localStorage.setItem(`compliance-weights-${tipoPerfil}`, JSON.stringify(weights));
   }, [weights, tipoPerfil]);
+
+  useEffect(() => {
+    localStorage.setItem('compliance-presets', JSON.stringify(presets));
+  }, [presets]);
 
   const setTipoPerfil = (tipo: TipoPerfil) => {
     setTipoPerfilState(tipo);
@@ -140,8 +165,47 @@ export const WeightsProvider = ({ children }: { children: ReactNode }) => {
     setWeights(tipoPerfil === 'tecnico' ? defaultWeightsTecnico : defaultWeightsEmpresa);
   };
 
+  const savePreset = (nome: string) => {
+    const newPreset: RulePreset = {
+      id: crypto.randomUUID(),
+      nome,
+      tipoPerfil,
+      weights: [...weights],
+      createdAt: new Date().toISOString()
+    };
+    setPresets(prev => [...prev, newPreset]);
+  };
+
+  const loadPreset = (id: string) => {
+    const preset = presets.find(p => p.id === id);
+    if (preset) {
+      setTipoPerfilState(preset.tipoPerfil);
+      setWeights(preset.weights);
+      setSelectedPreset(preset);
+    }
+  };
+
+  const deletePreset = (id: string) => {
+    setPresets(prev => prev.filter(p => p.id !== id));
+    if (selectedPreset?.id === id) {
+      setSelectedPreset(null);
+    }
+  };
+
   return (
-    <WeightsContext.Provider value={{ weights, updateWeight, resetWeights, tipoPerfil, setTipoPerfil }}>
+    <WeightsContext.Provider value={{ 
+      weights, 
+      updateWeight, 
+      resetWeights, 
+      tipoPerfil, 
+      setTipoPerfil,
+      presets,
+      savePreset,
+      loadPreset,
+      deletePreset,
+      selectedPreset,
+      setSelectedPreset
+    }}>
       {children}
     </WeightsContext.Provider>
   );
