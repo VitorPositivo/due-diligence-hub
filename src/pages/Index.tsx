@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { DocumentInput } from '@/components/DocumentInput';
 import { ModuleSelector } from '@/components/ModuleSelector';
 import { ComplianceReport } from '@/components/ComplianceReport';
+import PresetSelector from '@/components/PresetSelector';
 import { Button } from '@/components/ui/button';
 import { DocumentValidationResult, ModuloConsulta, RelatorioCompliance } from '@/types/compliance';
 import { getMockRelatorio } from '@/data/mockData';
@@ -18,15 +19,21 @@ const Index = () => {
   const [step, setStep] = useState<Step>('input');
   const [validation, setValidation] = useState<DocumentValidationResult | null>(null);
   const [relatorio, setRelatorio] = useState<RelatorioCompliance | null>(null);
+  const [showPresetSelector, setShowPresetSelector] = useState(false);
   const { toast } = useToast();
   const { weights, tipoPerfil } = useWeights();
 
   const handleValidDocument = (validationResult: DocumentValidationResult) => {
     setValidation(validationResult);
+    setShowPresetSelector(true);
+  };
+
+  const handlePresetConfirm = () => {
+    setShowPresetSelector(false);
     setStep('modules');
     toast({
       title: 'Documento validado com sucesso',
-      description: `${validationResult.type} válido: ${validationResult.formatted}`,
+      description: `${validation?.type} válido: ${validation?.formatted}`,
     });
   };
 
@@ -102,6 +109,12 @@ const Index = () => {
           />
         )}
       </div>
+
+      <PresetSelector
+        open={showPresetSelector}
+        onOpenChange={setShowPresetSelector}
+        onConfirm={handlePresetConfirm}
+      />
     </div>
   );
 };
