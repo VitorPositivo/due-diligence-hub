@@ -4,8 +4,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { WeightsProvider } from "@/contexts/WeightsContext";
+import HomePage from "./pages/HomePage";
 import Index from "./pages/Index";
 import AdminPanel from "./pages/AdminPanel";
+import BulkQuery from "./pages/BulkQuery";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -18,8 +20,10 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Index />} />
+            <Route path="/" element={<HomePage />} />
+            <Route path="/verificar" element={<Index />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/consulta-massa" element={<BulkQuery />} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>

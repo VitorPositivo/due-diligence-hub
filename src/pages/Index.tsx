@@ -10,7 +10,7 @@ import { getMockRelatorio } from '@/data/mockData';
 import { useToast } from '@/hooks/use-toast';
 import { useWeights } from '@/contexts/WeightsContext';
 import { calculateComplianceScore } from '@/lib/scoreCalculator';
-import { Settings } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 type Step = 'input' | 'modules' | 'report';
 
@@ -75,15 +75,15 @@ const Index = () => {
   return (
     <div className="min-h-screen bg-gradient-subtle">
       <div className="container mx-auto px-4 py-12">
-        {/* Botão Admin - sempre visível */}
-        <div className="flex justify-end mb-4">
+        {/* Botão Voltar */}
+        <div className="flex justify-start mb-4">
           <Button
-            variant="outline"
-            onClick={() => navigate('/admin')}
+            variant="ghost"
+            onClick={() => navigate('/')}
             className="gap-2"
           >
-            <Settings className="w-4 h-4" />
-            Painel Administrativo
+            <ArrowLeft className="w-4 h-4" />
+            Voltar ao Menu
           </Button>
         </div>
 
